@@ -19,68 +19,67 @@
       align-items:center;
       padding:16px;
     }
-    .app { 
-      width:100%; 
-      max-width:500px; 
-      text-align:center; 
-    }
-    h1 { 
-      font-size:clamp(1.2rem, 5vw, 2rem); 
-      margin-bottom:10px; 
+    .app { width:100%; max-width:500px; text-align:center; }
+    h1 { font-size:clamp(1.2rem, 5vw, 2rem); margin-bottom:10px; }
+    .scoreboard {
+      display:flex; justify-content:space-around; margin:10px 0;
+      font-size:clamp(0.9rem, 4vw, 1rem); background:#1e293b; padding:8px;
+      border-radius:8px;
     }
     .board {
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:8px;
-      margin:20px auto;
-      width:100%;
+      display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:20px auto; width:100%;
     }
     .cell {
       aspect-ratio:1/1;
-      display:flex; 
-      align-items:center; 
-      justify-content:center;
+      display:flex; align-items:center; justify-content:center;
       font-size:clamp(1.5rem, 10vw, 3rem);
       background:#1e293b;
-      border-radius:8px; 
-      cursor:pointer;
+      border-radius:8px; cursor:pointer;
       transition:background .2s;
     }
     .cell:hover { background:#334155; }
-    #status { 
-      margin:10px 0; 
-      font-size:clamp(1rem, 4vw, 1.2rem); 
-    }
+    #status { margin:10px 0; font-size:clamp(1rem, 4vw, 1.2rem); }
     button {
-      margin:5px; 
-      padding:10px 16px;
-      border:none; 
-      border-radius:6px;
+      margin:5px; padding:10px 16px;
+      border:none; border-radius:6px;
       font-size:clamp(0.9rem, 4vw, 1rem);
       cursor:pointer;
     }
-    .primary { 
-      background:#22c1c3; 
-      color:#000; 
-    }
+    .primary { background:#22c1c3; color:#000; }
   </style>
 </head>
 <body>
   <div class="app">
     <h1>Tres en Raya (PWA)</h1>
+    
+    <!-- Marcador -->
+    <div class="scoreboard">
+      <div>X: <span id="scoreX">0</span></div>
+      <div>O: <span id="scoreO">0</span></div>
+      <div>Empates: <span id="scoreDraw">0</span></div>
+    </div>
+
     <div id="board" class="board"></div>
     <p id="status">Turno: X</p>
+    
     <button id="restart" class="primary">Reiniciar</button>
+    <button id="toggleMode" class="primary">Jugar contra Máquina: OFF</button>
   </div>
 
   <script>
     const boardEl = document.getElementById("board");
     const statusEl = document.getElementById("status");
     const restartBtn = document.getElementById("restart");
+    const toggleModeBtn = document.getElementById("toggleMode");
 
+    // Marcador
+    let scoreX = 0, scoreO = 0, scoreDraw = 0;
+
+    // Estado del juego
     let state = Array(9).fill("");
     let turn = "X";
     let finished = false;
+    let vsCPU = false;
 
     function render() {
       boardEl.innerHTML = "";
@@ -89,27 +88,40 @@
         c.className="cell";
         c.dataset.index=i;
         c.textContent=v;
-        c.onclick=onCell;
+        c.onclick=()=>onCell(i);
         boardEl.appendChild(c);
       });
       if(!finished) statusEl.textContent = `Turno: ${turn}`;
+      updateScoreboard();
     }
 
-    function onCell(e){
-      if(finished) return;
-      const i = e.target.dataset.index;
-      if(state[i]) return;
+    function onCell(i){
+      if(finished || state[i]) return;
       state[i]=turn;
       if(checkWin()){
         finished=true;
         statusEl.textContent=`Ganador: ${turn}`;
+        if(turn==="X") scoreX++; else scoreO++;
       } else if(state.every(Boolean)){
         finished=true;
         statusEl.textContent="Empate";
+        scoreDraw++;
       } else {
         turn = turn==="X" ? "O" : "X";
       }
       render();
+
+      // Si juega la máquina (O)
+      if(vsCPU && !finished && turn==="O"){
+        setTimeout(cpuMove, 500);
+      }
+    }
+
+    function cpuMove(){
+      const empty = state.map((v,i)=>v===""?i:null).filter(v=>v!==null);
+      if(empty.length===0) return;
+      const choice = empty[Math.floor(Math.random()*empty.length)];
+      onCell(choice);
     }
 
     function checkWin(){
@@ -117,8 +129,20 @@
       return wins.some(([a,b,c])=>state[a] && state[a]===state[b] && state[a]===state[c]);
     }
 
+    function updateScoreboard(){
+      document.getElementById("scoreX").textContent=scoreX;
+      document.getElementById("scoreO").textContent=scoreO;
+      document.getElementById("scoreDraw").textContent=scoreDraw;
+    }
+
     restartBtn.onclick=()=>{
       state=Array(9).fill(""); turn="X"; finished=false; render();
+    };
+
+    toggleModeBtn.onclick=()=>{
+      vsCPU=!vsCPU;
+      toggleModeBtn.textContent = `Jugar contra Máquina: ${vsCPU ? "ON" : "OFF"}`;
+      restartBtn.click(); // reinicia la partida
     };
 
     render();
@@ -132,5 +156,4 @@
   </script>
 </body>
 </html>
-
 
