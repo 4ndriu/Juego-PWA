@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tres en raya — PWA</title>
+  <meta name="description" content="Juego de Tres en raya (Tic Tac Toe) empaquetado como PWA." />
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png" type="image/png">
+  <style>
+    :root{--accent:#22c1c3;--muted:#9aa3ad}
+    body{
+      height:100%;margin:0;font-family:Inter, sans-serif;color:#e6eef3;
+      background:linear-gradient(180deg,#071026 0%, #0c1620 100%);
+      display:flex;align-items:center;justify-content:center
+    }
+    .app{width:min(520px,95%);padding:22px;border-radius:14px;
+      background:rgba(255,255,255,0.03);box-shadow:0 8px 30px rgba(2,6,23,0.6);}
+    h1{margin:0 0 8px;font-size:20px}
+    .board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px}
+    .cell{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;
+      font-size:48px;border-radius:10px;background:rgba(255,255,255,0.05);
+      cursor:pointer;user-select:none}
+    .cell:hover{transform:translateY(-3px);box-shadow:0 6px 16px rgba(0,0,0,0.35)}
+    .controls{display:flex;gap:8px;margin-top:14px}
+    button{background:transparent;border:1px solid rgba(255,255,255,0.2);
+      padding:8px 12px;border-radius:10px;color:#dbe8ef;cursor:pointer}
+    .primary{background:linear-gradient(90deg,var(--accent),#6df0c8);color:#042126;border:none}
+    .status{margin-top:10px;color:var(--muted);font-size:14px}
+    footer{margin-top:12px;color:var(--muted);font-size:12px}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>Tres en raya (PWA)</h1>
+    <div class="meta">
+      <small>Juega contra otro jugador en el mismo dispositivo</small>
+      <div style="margin-left:auto" id="installWrap" class="hidden">
+        <button id="installBtn" class="primary">Instalar</button>
+      </div>
+    </div>
+
+    <section>
+      <div id="board" class="board"></div>
+    </section>
+
+    <div class="status" id="status">Turno: X</div>
+
+    <div class="controls">
+      <button id="restart">Reiniciar</button>
+      <button id="undo">Deshacer</button>
+      <button id="hintBtn">Consejo</button>
+    </div>
+
+    <footer>Hecho con ❤️ — Funciona offline</footer>
+  </main>
+
+  <script>
+  const boardEl = document.getElementById('board');
+  const statusEl = document.getElementById('status');
+  const restartBtn = document.getElementById('restart');
+  const undoBtn = document.getElementById('undo');
+  const hintBtn = document.getElementById('hintBtn');
+
+  let state = Array(9).fill('');
+  let turn = 'X';
+  let history = [];
+  let finished = false;
+
+  function render() {
+    boardEl.innerHTML = '';
+    state.forEach((v,i)=>{
+      const c = document.createElement('div');
+      c.className = 'cell';
+      c.dataset.index = i;
+      // Aquí podrías poner imágenes en lugar de texto
+      c.innerHTML = v === 'X' ? '❌' : v === 'O' ? '⭕' : '';
+      c.addEventListener('click', onCell);
+      boardEl.appendChild(c);
+    });
+    if(!finished) statusEl.textContent = `Turno: ${turn}`;
+  }
+
+  function onCell(e){
+    if(finished) return;
+    const i = Number(e.currentTarget.dataset.index);
+    if(state[i]) return;
+    history.push(state.slice());
+    state[i] = turn;
+    const win = checkWin(state);
+    if(win){
+      finished = true;
+      statusEl.textContent = `Ganador: ${turn}`;
+      return;
+    }
+    if(state.every(Boolean)){
+      finished = true;
+      statusEl.textContent = 'Empate';
+      return;
+    }
+    turn = turn === 'X' ? 'O' : 'X';
+    render();
+  }
+
+  function checkWin(s){
+    const lines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    for(const l of lines){
+      const [a,b,c]=l;
+      if(s[a] && s[a]===s[b] && s[b]===s[c]) return {player:s[a], indices:l};
+    }
+    return null;
+  }
+
+  restartBtn.addEventListener('click', ()=>{
+    state = Array(9).fill(''); turn='X'; history=[]; finished=false;
+    statusEl.textContent = 'Turno: X'; render();
+  });
+
+  undoBtn.addEventListener('click', ()=>{
+    if(history.length===0 || finished) return;
+    state = history.pop();
+    turn = turn==='X' ? 'O' : 'X';
+    finished=false;
+    render();
+  });
+
+  hintBtn.addEventListener('click', ()=>{
+    const move = bestMove(state, turn);
+    statusEl.textContent = move!==null ? `Consejo: celda ${move+1}` : 'Sin consejo';
+  });
+
+  function bestMove(s,player){
+    const opp = player==='X' ? 'O' : 'X';
+    for(let i=0;i<9;i++){ if(!s[i]){ let copy=s.slice(); copy[i]=player; if(checkWin(copy)) return i; } }
+    for(let i=0;i<9;i++){ if(!s[i]){ let copy=s.slice(); copy[i]=opp; if(checkWin(copy)) return i; } }
+    if(!s[4]) return 4;
+    for(const i of [0,2,6,8]) if(!s[i]) return i;
+    for(const i of [1,3,5,7]) if(!s[i]) return i;
+    return null;
+  }
+
+  render();
+
+  // Registrar Service Worker
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('service-worker.js')
+      .then(()=>console.log('SW registrado'))
+      .catch(err=>console.warn('Error SW:',err));
+  }
+
+  // Instalar app
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', (e)=>{
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('installWrap').classList.remove('hidden');
+    document.getElementById('installBtn').addEventListener('click', async ()=>{
+      document.getElementById('installWrap').classList.add('hidden');
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+    });
+  });
+  </script>
+</body>
+</html>
