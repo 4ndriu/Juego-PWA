@@ -11,26 +11,31 @@
     body {
       margin:0; font-family:sans-serif; color:#fff;
       display:flex; align-items:center; justify-content:center;
-      height:100vh;
+      min-height:100vh; padding:16px;
       background:linear-gradient(180deg,#071026 0%, #0c1620 100%);
     }
-    .app { text-align:center; }
+    .app { text-align:center; width:100%; max-width:500px; }
+    h1 { font-size:clamp(1.2rem, 5vw, 2rem); margin-bottom:10px; }
     .board {
       display:grid;
-      grid-template-columns:repeat(3,100px);
+      grid-template-columns:repeat(3,1fr);
       gap:8px;
       margin:20px auto;
     }
     .cell {
-      width:100px; height:100px;
+      aspect-ratio:1/1; /* mantiene cuadrados */
       display:flex; align-items:center; justify-content:center;
-      font-size:2.5rem; background:#1e293b;
+      font-size:clamp(1.5rem, 10vw, 3rem);
+      background:#1e293b;
       border-radius:8px; cursor:pointer;
+      transition:background .2s;
     }
     .cell:hover { background:#334155; }
+    #status { margin:10px 0; font-size:clamp(1rem, 4vw, 1.2rem); }
     button {
-      margin:5px; padding:8px 12px;
+      margin:5px; padding:10px 16px;
       border:none; border-radius:6px;
+      font-size:clamp(0.9rem, 4vw, 1rem);
       cursor:pointer;
     }
     .primary { background:#22c1c3; color:#000; }
@@ -103,4 +108,5 @@
   </script>
 </body>
 </html>
+
 
